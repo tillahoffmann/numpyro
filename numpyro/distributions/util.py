@@ -331,6 +331,10 @@ def vec_to_tril_matrix(t, diagonal=0):
     n = round((math.sqrt(1 + 8 * t.shape[-1]) - 1) / 2) - diagonal
     n2 = n * n
     idx = jnp.reshape(jnp.arange(n2), (n, n))[jnp.tril_indices(n, diagonal)]
+    if idx.shape[-1] != t.shape[-1]:
+        raise ValueError(
+            "The size of the last dimension must equal i * (i - 1) / 2 for integer i."
+        )
     x = lax.scatter_add(
         jnp.zeros(t.shape[:-1] + (n2,)),
         jnp.expand_dims(idx, axis=-1),

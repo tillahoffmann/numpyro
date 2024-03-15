@@ -13,9 +13,11 @@ from numpyro.distributions.flows import (
     BlockNeuralAutoregressiveTransform,
     InverseAutoregressiveTransform,
 )
+from numpyro.distributions import constraints
 from numpyro.distributions.transforms import (
     AbsTransform,
     AffineTransform,
+    biject_to,
     CholeskyTransform,
     ComposeTransform,
     CorrCholeskyTransform,
@@ -36,6 +38,7 @@ from numpyro.distributions.transforms import (
     SoftplusLowerCholeskyTransform,
     SoftplusTransform,
     StickBreakingTransform,
+    Transform,
     UnpackTransform,
 )
 
@@ -228,3 +231,49 @@ def test_reshape_transform_invalid():
 
     with pytest.raises(TypeError, match="cannot reshape array"):
         ReshapeTransform((2, 3), (6,))(jnp.arange(2))
+
+
+@pytest.mark.parametrize("transform, shape", [
+    (AffineTransform(jnp.arange(13), 2 * jnp.ones(13)), ()),
+    (CholeskyTransform(), (10,)),
+    (ComposeTransform([ExpTransform(), SigmoidTransform()]), ()),
+    (CorrCholeskyTransform(), (10,)),
+    (CorrMatrixCholeskyTransform(), (15,)),
+    (ExpTransform(), ()),
+    (IdentityTransform(), (5, 6)),
+    (IndependentTransform(SoftplusTransform(), 2), (5, 6)),
+    pytest.param(
+        L1BallTransform(),
+        (9,),
+        marks=pytest.mark.xfail(reason="numerical inaccuracies"),
+    ),
+    (LowerCholeskyAffine(jnp.ones(7), jnp.eye(7)), (7,)),
+    (LowerCholeskyTransform(), (28,)),
+    (OrderedTransform(), (4,)),
+    (PermuteTransform(jnp.roll(jnp.arange(7), 2)), (7,)),
+    (PowerTransform(.3), ()),
+    (ReshapeTransform((2, 5), (5, 2)), (5, 2)),
+    (ScaledUnitLowerCholeskyTransform(), (21,)),
+    (SigmoidTransform(), ()),
+    (SimplexToOrderedTransform(), (3,)),
+    (SoftplusLowerCholeskyTransform(), (6,)),
+    (SoftplusTransform(), (7,)),
+    (StickBreakingTransform(), (4,)),
+])
+def test_bijection(transform, shape):
+    if isinstance(transform, type):
+        pytest.skip()
+
+    # Initialize a value by transforming unconstrained noise to the support.
+    unconstrained = - jnp.ones((13,) + shape)
+    x1 = biject_to(transform.domain)(unconstrained)
+
+    # Transform forward.
+    y = transform(x1)
+    assert transform.codomain(y).all()
+    assert transform.forward_shape(x1.shape) == y.shape
+
+    # Transform backward.
+    x2 = transform.inv(y)
+    assert transform.inverse_shape(y.shape) == x2.shape
+    assert jnp.allclose(x1, x2, atol=1e-6)
