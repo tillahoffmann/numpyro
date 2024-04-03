@@ -1007,7 +1007,10 @@ class TransformedDistribution(Distribution):
         event_dim = transform.codomain.event_dim + max(
             base_event_dim - domain_event_dim, 0
         )
-        assert len(shape) >= event_dim
+        if len(shape) < event_dim:
+            raise ValueError(
+                f"Expected {event_dim} event dimensions, but the transformed shape is only {shape}."
+            )
         cut = len(shape) - event_dim
         batch_shape = shape[:cut]
         event_shape = shape[cut:]
