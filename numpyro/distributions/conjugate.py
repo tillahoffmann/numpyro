@@ -14,8 +14,11 @@ from numpyro.distributions.discrete import (
     ZeroInflatedDistribution,
 )
 from numpyro.distributions.distribution import Distribution
-from numpyro.distributions.util import promote_shapes, validate_sample
-from numpyro.util import is_prng_key
+from numpyro.distributions.util import (
+    promote_shapes,
+    validate_prng_key,
+    validate_sample,
+)
 
 
 def _log_beta_1(alpha, value):
@@ -60,8 +63,8 @@ class BetaBinomial(Distribution):
         self._beta = Beta(concentration1, concentration0)
         super(BetaBinomial, self).__init__(batch_shape, validate_args=validate_args)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         key_beta, key_binom = random.split(key)
         probs = self._beta.sample(key_beta, sample_shape)
         return BinomialProbs(total_count=self.total_count, probs=probs).sample(
@@ -136,8 +139,8 @@ class DirichletMultinomial(Distribution):
             validate_args=validate_args,
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         key_dirichlet, key_multinom = random.split(key)
         probs = self._dirichlet.sample(key_dirichlet, sample_shape)
         return MultinomialProbs(total_count=self.total_count, probs=probs).sample(
@@ -199,8 +202,8 @@ class GammaPoisson(Distribution):
             self._gamma.batch_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         key_gamma, key_poisson = random.split(key)
         rate = self._gamma.sample(key_gamma, sample_shape)
         return Poisson(rate).sample(key_poisson)

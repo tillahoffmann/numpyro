@@ -70,10 +70,10 @@ from numpyro.distributions.util import (
     matrix_to_tril_vec,
     promote_shapes,
     signed_stick_breaking_tril,
+    validate_prng_key,
     validate_sample,
     vec_to_tril_matrix,
 )
-from numpyro.util import is_prng_key
 
 
 class AsymmetricLaplace(Distribution):
@@ -111,8 +111,8 @@ class AsymmetricLaplace(Distribution):
         z = -jnp.abs(z) / jnp.where(z < 0, self.left_scale, self.right_scale)
         return z - jnp.log(self.left_scale + self.right_scale)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         shape = (2,) + sample_shape + self.batch_shape + self.event_shape
         u, v = random.exponential(key, shape=shape)
         return self.loc - self.left_scale * u + self.right_scale * v
@@ -175,8 +175,8 @@ class Beta(Distribution):
             jnp.stack([concentration1, concentration0], axis=-1)
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         return self._dirichlet.sample(key, sample_shape)[..., 0]
 
     @validate_sample
@@ -211,8 +211,8 @@ class Cauchy(Distribution):
             batch_shape=batch_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         eps = random.cauchy(key, shape=sample_shape + self.batch_shape)
         return self.loc + eps * self.scale
 
@@ -260,8 +260,8 @@ class Dirichlet(Distribution):
             validate_args=validate_args,
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         shape = sample_shape + self.batch_shape
         samples = random.dirichlet(key, self.concentration, shape=shape)
         return jnp.clip(
@@ -332,8 +332,8 @@ class EulerMaruyama(Distribution):
     def support(self):
         return constraints.independent(constraints.real, self.event_dim)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         batch_shape = sample_shape + self.batch_shape
 
         def step(y_curr, xs):
@@ -434,8 +434,8 @@ class Exponential(Distribution):
             batch_shape=jnp.shape(rate), validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         return (
             random.exponential(key, shape=sample_shape + self.batch_shape) / self.rate
         )
@@ -474,8 +474,8 @@ class Gamma(Distribution):
             batch_shape=batch_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         shape = sample_shape + self.batch_shape + self.event_shape
         return random.gamma(key, self.concentration, shape=shape) / self.rate
 
@@ -531,8 +531,8 @@ class GaussianRandomWalk(Distribution):
             batch_shape, event_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         shape = sample_shape + self.batch_shape + self.event_shape
         walks = random.normal(key, shape=shape)
         return jnp.cumsum(walks, axis=-1) * jnp.expand_dims(self.scale, axis=-1)
@@ -569,8 +569,8 @@ class HalfCauchy(Distribution):
             batch_shape=jnp.shape(scale), validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         return jnp.abs(self._cauchy.sample(key, sample_shape))
 
     @validate_sample
@@ -605,8 +605,8 @@ class HalfNormal(Distribution):
             batch_shape=jnp.shape(scale), validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         return jnp.abs(self._normal.sample(key, sample_shape))
 
     @validate_sample
@@ -696,8 +696,8 @@ class Gompertz(Distribution):
             validate_args=validate_args,
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         random_shape = sample_shape + self.batch_shape + self.event_shape
         unifs = random.uniform(key, shape=random_shape)
         return self.icdf(unifs)
@@ -736,8 +736,8 @@ class Gumbel(Distribution):
             batch_shape=batch_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         standard_gumbel_sample = random.gumbel(
             key, shape=sample_shape + self.batch_shape + self.event_shape
         )
@@ -788,8 +788,8 @@ class Kumaraswamy(Distribution):
         )
         super().__init__(batch_shape=batch_shape, validate_args=validate_args)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         finfo = jnp.finfo(jnp.result_type(float))
         u = random.uniform(
             key, shape=sample_shape + self.batch_shape, minval=finfo.tiny
@@ -832,8 +832,8 @@ class Laplace(Distribution):
             batch_shape=batch_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         eps = random.laplace(
             key, shape=sample_shape + self.batch_shape + self.event_shape
         )
@@ -1085,8 +1085,8 @@ class LKJCholesky(Distribution):
         diag = jnp.ones(cholesky.shape[:-1]).at[..., 1:].set(jnp.sqrt(1 - beta_sample))
         return add_diag(cholesky, diag)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         if self.sample_method == "onion":
             return self._onion(key, sample_shape)
         else:
@@ -1172,8 +1172,8 @@ class Logistic(Distribution):
         batch_shape = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
         super(Logistic, self).__init__(batch_shape, validate_args=validate_args)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         z = random.logistic(
             key, shape=sample_shape + self.batch_shape + self.event_shape
         )
@@ -1469,8 +1469,8 @@ class MultivariateNormal(Distribution):
             validate_args=validate_args,
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         eps = random.normal(
             key, shape=sample_shape + self.batch_shape + self.event_shape
         )
@@ -1777,8 +1777,8 @@ class MultivariateStudentT(Distribution):
             validate_args=validate_args,
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         key_normal, key_chi2 = random.split(key)
         std_normal = random.normal(
             key_normal,
@@ -1980,8 +1980,8 @@ class LowRankMultivariateNormal(Distribution):
         inverse_cov_diag = jnp.reciprocal(self.cov_diag)
         return add_diag(-jnp.matmul(jnp.swapaxes(A, -1, -2), A), inverse_cov_diag)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         key_W, key_D = random.split(key)
         batch_shape = sample_shape + self.batch_shape
         W_shape = batch_shape + self.cov_factor.shape[-1:]
@@ -2031,8 +2031,8 @@ class Normal(Distribution):
             batch_shape=batch_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         eps = random.normal(
             key, shape=sample_shape + self.batch_shape + self.event_shape
         )
@@ -2155,8 +2155,8 @@ class SoftLaplace(Distribution):
         z = (value - self.loc) / self.scale
         return jnp.log(2 / jnp.pi) - jnp.log(self.scale) - jnp.logaddexp(z, -z)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         dtype = jnp.result_type(float)
         finfo = jnp.finfo(dtype)
         minval = finfo.tiny
@@ -2201,8 +2201,8 @@ class StudentT(Distribution):
         self._chi2 = Chi2(df)
         super(StudentT, self).__init__(batch_shape, validate_args=validate_args)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         key_normal, key_chi2 = random.split(key)
         std_normal = random.normal(key_normal, shape=sample_shape + self.batch_shape)
         z = self._chi2.sample(key_chi2, sample_shape)
@@ -2317,8 +2317,8 @@ class Weibull(Distribution):
         batch_shape = lax.broadcast_shapes(jnp.shape(concentration), jnp.shape(scale))
         super().__init__(batch_shape=batch_shape, validate_args=validate_args)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         return random.weibull_min(
             key,
             scale=self.scale,

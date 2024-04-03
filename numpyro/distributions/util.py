@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from collections import namedtuple
-from functools import partial, update_wrapper
+from functools import partial, update_wrapper, wraps
 import math
 import warnings
 
@@ -671,6 +671,7 @@ class lazy_property(object):
 
 
 def validate_sample(log_prob_fn):
+    @wraps(log_prob_fn)
     def wrapper(self, *args, **kwargs):
         log_prob = log_prob_fn(self, *args, **kwargs)
         if self._validate_args:
@@ -678,6 +679,20 @@ def validate_sample(log_prob_fn):
             mask = self._validate_sample(value)
             log_prob = jnp.where(mask, log_prob, -jnp.inf)
         return log_prob
+
+    return wrapper
+
+
+def validate_prng_key(sample_fn):
+    @wraps(sample_fn)
+    def wrapper(self, *args, **kwargs):
+        key = kwargs["key"] if "key" in kwargs else args[0]
+        if not is_prng_key(key):
+            raise ValueError(
+                f"Expected random number generator key but got {key}; did you forget "
+                "to seed the model?"
+            )
+        return sample_fn(self, *args, **kwargs)
 
     return wrapper
 

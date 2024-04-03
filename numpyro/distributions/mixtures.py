@@ -7,8 +7,7 @@ import jax.numpy as jnp
 
 from numpyro.distributions import Distribution, constraints
 from numpyro.distributions.discrete import CategoricalLogits, CategoricalProbs
-from numpyro.distributions.util import validate_sample
-from numpyro.util import is_prng_key
+from numpyro.distributions.util import validate_prng_key, validate_sample
 
 
 def Mixture(mixing_distribution, component_distributions, *, validate_args=None):
@@ -112,6 +111,7 @@ class _MixtureBase(Distribution):
         cdf_components = self.component_cdf(samples)
         return jnp.sum(cdf_components * self.mixing_distribution.probs, axis=-1)
 
+    @validate_prng_key
     def sample_with_intermediates(self, key, sample_shape=()):
         """
         A version of ``sample`` that also returns the sampled component indices
@@ -123,7 +123,6 @@ class _MixtureBase(Distribution):
             the indices of the sampled components.
         :rtype: tuple
         """
-        assert is_prng_key(key)
         key_comp, key_ind = jax.random.split(key)
         samples = self.component_sample(key_comp, sample_shape=sample_shape)
 

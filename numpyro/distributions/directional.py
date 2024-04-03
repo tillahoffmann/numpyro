@@ -19,10 +19,11 @@ from numpyro.distributions.util import (
     lazy_property,
     promote_shapes,
     safe_normalize,
+    validate_prng_key,
     validate_sample,
     von_mises_centered,
 )
-from numpyro.util import is_prng_key, while_loop
+from numpyro.util import while_loop
 
 
 def _numel(shape):
@@ -112,6 +113,7 @@ class VonMises(Distribution):
             batch_shape=batch_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
         """Generate sample from von Mises distribution
 
@@ -119,7 +121,6 @@ class VonMises(Distribution):
         :param sample_shape: shape of samples
         :return: samples from von Mises
         """
-        assert is_prng_key(key)
         samples = von_mises_centered(
             key, self.concentration, sample_shape + self.shape()
         )
@@ -417,13 +418,13 @@ class SineBivariateVonMises(Distribution):
         )
         return indv + corr - self.norm_const
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
         """
         ** References: **
             1. A New Unified Approach for the Simulation of a Wide Class of Directional Distributions
                John T. Kent, Asaad M. Ganeiber & Kanti V. Mardia (2018)
         """
-        assert is_prng_key(key)
         phi_key, psi_key = random.split(key)
 
         corr = self.correlation

@@ -21,9 +21,9 @@ from numpyro.distributions.util import (
     clamp_probs,
     lazy_property,
     promote_shapes,
+    validate_prng_key,
     validate_sample,
 )
-from numpyro.util import is_prng_key
 
 
 class LeftTruncatedDistribution(Distribution):
@@ -61,8 +61,8 @@ class LeftTruncatedDistribution(Distribution):
         # if low < loc, returns cdf(high) = 1; otherwise returns 1 - cdf(high) = 0
         return jnp.where(self.low <= self.base_dist.loc, 1.0, 0.0)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         dtype = jnp.result_type(float)
         finfo = jnp.finfo(dtype)
         minval = finfo.tiny
@@ -132,8 +132,8 @@ class RightTruncatedDistribution(Distribution):
     def _cdf_at_high(self):
         return self.base_dist.cdf(self.high)
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         dtype = jnp.result_type(float)
         finfo = jnp.finfo(dtype)
         minval = finfo.tiny
@@ -229,8 +229,8 @@ class TwoSidedTruncatedDistribution(Distribution):
             sign = jnp.where(loc >= self.low, 1.0, -1.0)
             return jnp.log(sign * (self._tail_prob_at_high - self._tail_prob_at_low))
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         dtype = jnp.result_type(float)
         finfo = jnp.finfo(dtype)
         minval = finfo.tiny
@@ -341,8 +341,8 @@ class TruncatedPolyaGamma(Distribution):
             batch_shape, validate_args=validate_args
         )
 
+    @validate_prng_key
     def sample(self, key, sample_shape=()):
-        assert is_prng_key(key)
         denom = jnp.square(jnp.arange(0.5, self.num_gamma_variates))
         x = random.gamma(
             key, jnp.ones(self.batch_shape + sample_shape + (self.num_gamma_variates,))
